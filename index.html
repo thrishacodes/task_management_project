@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Manager</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f1f5f9;
+      color: #1e293b;
+    }
+
+    .container {
+      max-width: 650px;
+      margin: 30px auto;
+      background: white;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 5px 20px #0001;
+    }
+
+    h1 {
+      text-align: center;
+      color: #2563eb;
+    }
+
+    .form {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    input {
+      min-width: 0;
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 11px 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+      font-size: 14px;
+    }
+
+    .task {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .task span {
+      flex: 1;
+      overflow-wrap: anywhere;
+    }
+
+    .task.done span {
+      text-decoration: line-through;
+      color: #64748b;
+    }
+
+    .task .delete {
+      background: #dc2626;
+    }
+
+    .task .edit {
+      background: #0f766e;
+    }
+
+    #message {
+      color: #64748b;
+      text-align: center;
+    }
+
+    @media (max-width: 450px) {
+      .container {
+        padding: 16px;
+      }
+
+      .form {
+        flex-wrap: wrap;
+      }
+
+      .form input {
+        flex-basis: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>My Task Manager</h1>
+
+    <form class="form" id="taskForm">
+      <input
+        type="text"
+        id="taskInput"
+        placeholder="Enter a new task..."
+        required
+      >
+      <button type="submit" id="submitButton">Add Task</button>
+    </form>
+
+    <p id="message">Your tasks will appear here.</p>
+    <div id="taskList"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById("taskForm");
+    const input = document.getElementById("taskInput");
+    const list = document.getElementById("taskList");
+    const message = document.getElementById("message");
+    const submitButton = document.getElementById("submitButton");
+
+    let tasks = JSON.parse(
+      localStorage.getItem("myTasks") || "[]"
+    );
+
+    let editingId = null;
+
+    function saveTasks() {
+      localStorage.setItem("myTasks", JSON.stringify(tasks));
+    }
+
+    function renderTasks() {
+      list.replaceChildren();
+      message.textContent = tasks.length
+        ? `${tasks.length} task(s) in your list`
+        : "No tasks yet. Add your first task!";
+
+      tasks.forEach(task => {
+        const row = document.createElement("div");
+        row.className = "task" + (task.done ? " done" : "");
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = task.done;
+        checkbox.setAttribute("aria-label", "Mark task complete");
+
+        checkbox.addEventListener("change", () => {
+          task.done = checkbox.checked;
+          saveTasks();
+          renderTasks();
+        });
+
+        const text = document.createElement("span");
+        text.textContent = task.title;
+
+        const edit = document.createElement("button");
+        edit.textContent = "Edit";
+        edit.className = "edit";
+
+        edit.addEventListener("click", () => {
+          input.value = task.title;
+          editingId = task.id;
+          submitButton.textContent = "Update";
+          input.focus();
+        });
+
+        const remove = document.createElement("button");
+        remove.textContent = "Delete";
+        remove.className = "delete";
+
+        remove.addEventListener("click", () => {
+          tasks = tasks.filter(item => item.id !== task.id);
+          saveTasks();
+          renderTasks();
+        });
+
+        row.append(checkbox, text, edit, remove);
+        list.appendChild(row);
+      });
+    }
+
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+
+      const title = input.value.trim();
+      if (!title) return;
+
+      if (editingId !== null) {
+        const task = tasks.find(item => item.id === editingId);
+        if (task) task.title = title;
+      } else {
+        tasks.push({
+          id: Date.now(),
+          title,
+          done: false
+        });
+      }
+
+      editingId = null;
+      input.value = "";
+      submitButton.textContent = "Add Task";
+
+      saveTasks();
+      renderTasks();
+    });
+
+    renderTasks();
+  </script>
+</body>
+</html>
